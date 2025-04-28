@@ -1,4 +1,4 @@
-/* Tiffany Xie | STRIPE | Business Partner Analyst Exercise */
+/* Tiffany Xie - Business Partner Analyst Technical Exercise */
 
 CREATE TABLE stripe_data (
 	week smallint,
