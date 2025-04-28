@@ -1,0 +1,70 @@
+/* Tiffany Xie | STRIPE | Business Partner Analyst Exercise */
+
+CREATE TABLE stripe_data (
+	week smallint,
+	browser varchar(20),
+	country char(2),
+	visits integer,
+	conversions integer
+); 
+-- Then: convert .xlsx file into .csv, and import into table
+-- To confirm import: SELECT * FROM stripe_data;
+
+---------- PART 1 ----------
+WITH aggregate_data AS (
+	SELECT
+		week,
+		SUM(conversions) AS sum_conversions,
+		SUM(visits) AS sum_visits,
+		((SUM(conversions)*1.0 / SUM(visits)*1.0))::numeric(6,3) AS weekly_conversion_rate
+	FROM stripe_data
+	GROUP BY week
+	ORDER by week
+)
+SELECT
+	AD.week,
+	AD.weekly_conversion_rate,
+	AD.sum_conversions,
+	((AD.sum_conversions - prev_row.sum_conversions)*1.0 
+		/ AD.sum_conversions*1.0)::numeric(6,3) AS conversion_growth,
+	AD.sum_visits,
+	((AD.sum_visits - prev_row.sum_visits)*1.0 
+		/ AD.sum_visits*1.0)::numeric(6,3) AS visit_growth,
+	((AD.sum_conversions - prev_row.sum_conversions)*1.0 
+		/ AD.sum_conversions*1.0)::numeric(6,3) - 
+	((AD.sum_visits - prev_row.sum_visits)*1.0 
+		/ AD.sum_visits*1.0)::numeric(6,3) AS growth_differential -- e.g. conversion_growth - visit_growth
+FROM aggregate_data AS AD
+LEFT JOIN aggregate_data AS prev_row ON AD.week = prev_row.week + 1;
+
+---------- PART 2 ----------
+-- Total visits by browser
+SELECT 
+	browser AS "Browser",
+	TO_CHAR(SUM(visits), 'FM9,999,999,999') AS "Total Visits"
+FROM stripe_data
+GROUP BY browser
+ORDER BY browser;
+
+-- Create a column that ranks each country based on their conversion rate performance for each week
+WITH aggregate_data AS (
+	SELECT
+		week,
+		country,
+		SUM(conversions) AS sum_conversions,
+		SUM(visits) AS sum_visits,
+		((SUM(conversions)*1.0 / SUM(visits)*1.0))::numeric(6,3) AS weekly_conversion_rate
+	FROM stripe_data
+	GROUP BY week, country
+	ORDER by week, country
+)
+SELECT
+	AD.week,
+	AD.country,
+	AD.weekly_conversion_rate,
+	RANK () OVER (PARTITION BY week ORDER BY weekly_conversion_rate DESC) AS weekly_rank
+FROM aggregate_data AS AD
+
+
+
+/* the end */
